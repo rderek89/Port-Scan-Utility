@@ -4,7 +4,7 @@ Overview
 The Port Scan Utility is a lightweight and easy-to-use tool designed to help users scan a given host for open ports. Built using Python and the Tkinter GUI library, it allows users to scan IP addresses or domain names to identify which ports are open and accessible. This tool is useful for network administrators, security professionals, or anyone interested in analyzing the availability of services on a network.
 Features
 
-    Scan Hosts: Enter an IP address or domain name to scan for open ports within a specified range.
+    Scan Hosts: Enter an IP address or domain name to scan for open ports within a specified range (Ports 0-1024).
 
     Real-time Results: View real-time results in the application window, showing which ports are open and available.
 
