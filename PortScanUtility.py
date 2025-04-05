@@ -64,19 +64,19 @@ end_port_label.pack(pady=5)
 end_port_entry = tk.Entry(root, width=20, bg="#2d2d2d", fg="white", insertbackground="black", bd=2)
 end_port_entry.pack(pady=5)
 
+# File to store results
+file = open("Port-Scanner.txt", "w")
+
+
 # Function to start the scan (run in a separate thread)
 def scan_ports():
-    # Disable the scan button during the scan
-    scan_button.config(state=tk.DISABLED)
-
     # Clear previous results
     result_text.delete(1.0, tk.END)
-    result_text.insert(tk.END, "Scanning in progress...\n")
+    loading_text = result_text.insert(tk.END, "Scanning in progress...")
 
     host = host_entry.get()
     if not host:
         messagebox.showerror("Input Error", "Please enter a valid host.")
-        scan_button.config(state=tk.NORMAL)
         return
 
     try:
@@ -89,23 +89,32 @@ def scan_ports():
             host_ip = socket.gethostbyname(host)
         except socket.gaierror:
             messagebox.showerror("Host Error", "Host name you entered is invalid.")
-            scan_button.config(state=tk.NORMAL)
             return
 
     result_text.insert(tk.END, f"Scanning Host: {host_ip}\n")
+    file.write(f"\nScanning Host: {host_ip}\n")
 
     # Get port range
     try:
         start_port = int(start_port_entry.get())
         end_port = int(end_port_entry.get())
+
+        # Limit the end port to 1024
+        if end_port > 1024:
+            end_port = 1024
+            messagebox.showwarning("Port Limit", "End port has been limited to 1024.")
+
     except ValueError:
         messagebox.showerror("Input Error", "Please enter valid port numbers.")
-        scan_button.config(state=tk.NORMAL)
         return
+
+    result_text.insert(tk.END, "Finding Open Ports: In Progress....\n")
+    file.write("Finding Open Ports: In Progress....\n")
 
     # Record the start time
     t1 = datetime.now()
     result_text.insert(tk.END, f"Start time: {t1}\n")
+    file.write(f"Start time: {t1}\n")
 
     # Track if any open ports are found
     open_ports_found = False
@@ -115,34 +124,34 @@ def scan_ports():
         nonlocal open_ports_found
         for port in range(start_port, end_port + 1):
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(1)  # Set a more reasonable timeout for real scans
+            sock.settimeout(0.01)
             result = sock.connect_ex((host_ip, port))
 
             if result == 0:
                 result_text.insert(tk.END, f"Port {port} is Open\n")
+                file.write(f"\nPort {port} is Open")
                 open_ports_found = True  # Mark that an open port was found
 
             sock.close()
 
-            # Update progress bar periodically
-            if (port - start_port) % 10 == 0:  # Update every 10 ports
-                progress_bar['value'] = (port - start_port + 1) / (end_port - start_port + 1) * 100
-                root.update_idletasks()
+            # Update progress bar
+            progress_bar['value'] = (port - start_port + 1) / (end_port - start_port + 1) * 100
+            root.update_idletasks()
 
         # If no open ports were found, display the message
         if not open_ports_found:
             result_text.insert(tk.END, "No open ports were found.\n")
+            file.write("\nNo open ports were found.\n")
 
         # Record the end time
         t2 = datetime.now()
         result_text.insert(tk.END, f"End time: {t2}\n")
+        file.write(f"\nEnd time: {t2}\n")
 
         # Calculate and display total time
         total_time = t2 - t1
         result_text.insert(tk.END, f"Total time: {total_time}\n")
-
-        # Re-enable the scan button after completion
-        scan_button.config(state=tk.NORMAL)
+        file.write(f"\nTotal time: {total_time}\n")
 
     # Start the scan in a separate thread to avoid freezing the UI
     threading.Thread(target=scan, daemon=True).start()
@@ -162,8 +171,16 @@ def download_log():
 
 # Function to display About Me section
 def show_about():
-    about_text = "Port Scan Utility\nCreated by Derek Robinson\n\nThis tool helps you scan a given host for open ports."
+    about_text = (
+        "Port Scan Utility\n"
+        "Created by Derek Robinson\n\n"
+        "This tool helps you scan a given host for open ports.\n\n"
+        "Port Scan Limit:\n"
+        "The maximum port range for scanning is limited to ports 0-1024.\n"
+        "Please ensure that the end port you enter is within this range.\n"
+    )
     messagebox.showinfo("About Me", about_text)
+
 
 
 # Function to display How to Use section
